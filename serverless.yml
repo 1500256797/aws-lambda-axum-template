@@ -1,0 +1,44 @@
+service: my-rust-service
+
+provider:
+  name: aws
+  runtime: provided.al2
+  architecture: arm64
+  region: us-east-1
+  deploymentBucket:
+    versioning: true
+    blockPublicAccess: true
+    createBucket: true
+  environment:
+    RUST_BACKTRACE: 1
+    RUST_LOG: info
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            - s3:*
+          Resource: "*"
+
+package:
+  individually: true
+
+functions:
+  api:
+    handler: bootstrap
+    package:
+      artifact: ./aws_axum_lambda/target/lambda/bootstrap/bootstrap.zip
+    memorySize: 128
+    timeout: 30
+    events:
+      - http:
+          path: /{proxy+}
+          method: ANY
+          cors: true
+      - http:
+          path: /
+          method: ANY
+          cors: true
